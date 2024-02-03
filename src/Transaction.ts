@@ -1,4 +1,4 @@
-import { add, isWithinInterval, isBefore, Duration, parseJSON } from 'date-fns';
+import { add, isWithinInterval, isBefore, Duration, parseJSON, compareAsc } from 'date-fns';
 
 export enum Trigger {
   ONCE = 'ONCE', 
@@ -86,4 +86,23 @@ export class Transaction implements ITransaction {
 
     return clone;
   }
+}
+
+/**
+ * Comparse two transactions for sorting by date ASC, then amount DESC.
+ * @param t0 
+ * @param t1 
+ * @returns 
+ */
+export function compare(t0: Transaction, t1: Transaction): number {
+  let x = compareAsc(t0.date, t1.date);
+  if (x != 0) return x;
+  
+  if (t0.amount < t1.amount) {
+    return 1;
+  }
+  else if (t0.amount > t1.amount) {
+    return -1;
+  }
+  else return 0;
 }
