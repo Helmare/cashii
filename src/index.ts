@@ -111,8 +111,23 @@ program.command('list')
 
 // View
 program.command("view")
-  .action(() => {
-    let records:AccountRecord[] = acc.view(startOfMonth(new Date()), lastDayOfMonth(new Date()));
+  .option('--month, -m <month>', 'The month in view (MM).', (new Date().getMonth() + 1).toString())
+  .option('--year, -y <year>', 'The year in view (yyyy).', new Date().getFullYear().toString())
+  .action((opts: {M: string, Y: string}) => {
+    const month:number = parseInt(opts.M);
+    if (isNaN(month) || month <= 0 || month > 12) {
+      console.log(chalk.redBright("Invalid month."));
+    }
+    const year:number = parseInt(opts.Y);
+    if (isNaN(year)) {
+      console.log(chalk.redBright("Invalid year."));
+    }
+
+    const date = new Date();
+    date.setMonth(month - 1);
+    date.setFullYear(year);
+
+    let records:AccountRecord[] = acc.view(startOfMonth(date), lastDayOfMonth(date));
     recordTable.render(records);
   });
 

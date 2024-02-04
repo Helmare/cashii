@@ -44,11 +44,39 @@ export class Transaction implements ITransaction {
   }
 
   /**
+   * Gets all instances of the transaction before the end date, which the transactions will
+   * be triggered once.
+   * 
+   * @param end The end date (exclusive).
+   * @returns All instances before the date.
+   */
+  expandBefore(end: Date): Transaction[] {
+    if (this.trigger == Trigger.ONCE) {
+      return isBefore(this.date, end) ? [this] : [];
+    }
+    else {
+      let arr: Transaction[] = [];
+      let curr: Date = new Date(this.date);
+      let interval: Duration = {
+        days: this.trigger == Trigger.DAILY ? 1 : 0,
+        weeks: this.trigger == Trigger.WEEKLY ? 1 : 0,
+        months: this.trigger == Trigger.MONTHLY ? 1 : 0,
+        years: this.trigger == Trigger.YEARLY ? 1 : 0
+      };
+
+      while (isBefore(curr, end)) {
+        arr.push(this.collapse(curr));
+        curr = add(curr, interval);
+      }
+      return arr;
+    }
+  }
+  /**
    * Gets all instances of the transaction in the date range, which the transactions will
    * be triggered once.
    * 
-   * @param start Start of the date range.
-   * @param end End of the date range.
+   * @param start Start of the date range (inclusive).
+   * @param end End of the date range (inclusive).
    * @returns All instances inside the date range.
    */
   expand(start: Date, end: Date): Transaction[] {
