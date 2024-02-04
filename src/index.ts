@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 import { load, save } from './cashii.js';
 import { program } from 'commander';
-import { format, lastDayOfMonth, parse, startOfMonth } from "date-fns";
+import { format, isEqual, lastDayOfMonth, parse, startOfMonth } from "date-fns";
 import { Transaction, Trigger, compare } from "./Transaction.js";
 import { ClimtTable } from 'climt';
 import { Account, AccountRecord } from './Account.js';
@@ -12,32 +12,31 @@ const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: '
 
 // Transaction table.
 const transTable: ClimtTable<Transaction> = new ClimtTable();
-transTable.column('ID', (t, i) => i.toString());
-transTable.column('Date', t => format(t.date, 'MM/dd/yyyy'));
+transTable.column('ID', ({row}) => row.toString());
+transTable.column('Date', ({obj}) => format(obj!.date, 'MM/dd/yyyy'));
 transTable.column('Memo', 'memo');
-transTable.column('Amount', t => currency.format(t.amount));
+transTable.column('Amount', ({obj}) => currency.format(obj!.amount));
 transTable.column('Trigger', 'trigger');
 
 // Records table.
 const recordTable: ClimtTable<AccountRecord> = new ClimtTable();
-recordTable.column('Date', r => format(r.trans.date, 'MM/dd/yyyy'));
+recordTable.column('Date', ({obj, data, row}) => {
+  if (row > 0 && isEqual(data[row - 1].trans.date, obj!.trans.date)) {
+    return '';
+  }
+  else {
+    return format(obj!.trans.date, 'MM/dd/yyyy')
+  }
+});
 recordTable.column('Memo', 'trans.memo');
-recordTable.column('Amount', r => currency.format(r.trans.amount));
-recordTable.column('Total', r => {
-  const str = currency.format(r.amount);
-  if (r.amount < 0) {
+recordTable.column('Amount', ({obj}) => currency.format(obj!.trans.amount));
+recordTable.column('Total', ({obj}) => {
+  const str = currency.format(obj!.amount);
+  if (obj!.amount < 0) {
     return chalk.redBright(str);
   }
   else {
     return chalk.greenBright(str);
-  }
-});
-recordTable.format((col, row, content, data) => {
-  if (row >= 0 && data.trans.date.getDate() % 2 == 0) {
-    return chalk.gray(content);
-  }
-  else {
-    return content;
   }
 });
 
@@ -114,11 +113,11 @@ program.command("view")
   .option('--month, -m <month>', 'The month in view (MM).', (new Date().getMonth() + 1).toString())
   .option('--year, -y <year>', 'The year in view (yyyy).', new Date().getFullYear().toString())
   .action((opts: {M: string, Y: string}) => {
-    const month:number = parseInt(opts.M);
+    const month: number = parseInt(opts.M);
     if (isNaN(month) || month <= 0 || month > 12) {
       console.log(chalk.redBright("Invalid month."));
     }
-    const year:number = parseInt(opts.Y);
+    const year: number = parseInt(opts.Y);
     if (isNaN(year)) {
       console.log(chalk.redBright("Invalid year."));
     }
@@ -127,7 +126,7 @@ program.command("view")
     date.setMonth(month - 1);
     date.setFullYear(year);
 
-    let records:AccountRecord[] = acc.view(startOfMonth(date), lastDayOfMonth(date));
+    let records: AccountRecord[] = acc.view(startOfMonth(date), lastDayOfMonth(date));
     recordTable.render(records);
   });
 
