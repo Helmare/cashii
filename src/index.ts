@@ -2,13 +2,49 @@
 import { load, save } from './cashii.js';
 import { program } from 'commander';
 import { format, lastDayOfMonth, parse, startOfMonth } from "date-fns";
-import { Transaction, Trigger } from "./Transaction.js";
+import { Transaction, Trigger, compare } from "./Transaction.js";
 import { ClimtTable } from 'climt';
 import { Account, AccountRecord } from './Account.js';
 import chalk from 'chalk';
 
+// Currency format.
+const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+// Transaction table.
+const transTable: ClimtTable<Transaction> = new ClimtTable();
+transTable.column('ID', (t, i) => i.toString());
+transTable.column('Date', t => format(t.date, 'MM/dd/yyyy'));
+transTable.column('Memo', 'memo');
+transTable.column('Amount', t => currency.format(t.amount));
+transTable.column('Trigger', 'trigger');
+
+// Records table.
+const recordTable: ClimtTable<AccountRecord> = new ClimtTable();
+recordTable.column('Date', r => format(r.trans.date, 'MM/dd/yyyy'));
+recordTable.column('Memo', 'trans.memo');
+recordTable.column('Amount', r => currency.format(r.trans.amount));
+recordTable.column('Total', r => {
+  const str = currency.format(r.amount);
+  if (r.amount < 0) {
+    return chalk.redBright(str);
+  }
+  else {
+    return chalk.greenBright(str);
+  }
+});
+recordTable.format((col, row, content, data) => {
+  if (row >= 0 && data.trans.date.getDate() % 2 == 0) {
+    return chalk.gray(content);
+  }
+  else {
+    return content;
+  }
+});
+
 // Load cashii data.
 const cashii = await load();
+cashii.transactions = cashii.transactions.sort(compare);
+
 const acc = new Account(cashii.transactions);
 
 function transferFn(scalar: number) {
@@ -44,7 +80,7 @@ function transferFn(scalar: number) {
 program
   .name('cashii')
   .description('A CLI budgeting app.')
-  .version('0.1.0')
+  .version('0.0.1')
   .option('--debug');
 
 // Transaction manipulation.
@@ -71,40 +107,13 @@ program.command('remove')
 
 // List command
 program.command('list')
-  .action(() => {
-    const table: ClimtTable<Transaction> = new ClimtTable();
-    const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
-    table.column('ID', (t, i) => i.toString());
-    table.column('Date', t => format(t.date, 'MM/dd/yyyy'));
-    table.column('Memo', 'memo');
-    table.column('Amount', t => currency.format(t.amount));
-    table.column('Trigger', 'trigger');
-    
-    table.render(cashii.transactions);
-  });
+  .action(() => transTable.render(cashii.transactions));
 
 // View
 program.command("view")
   .action(() => {
     let records:AccountRecord[] = acc.view(startOfMonth(new Date()), lastDayOfMonth(new Date()));
-
-    const table: ClimtTable<AccountRecord> = new ClimtTable();
-    const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-    
-    table.column('Date', r => format(r.trans.date, 'MM/dd/yyyy'));
-    table.column('Memo', 'trans.memo');
-    table.column('Amount', r => currency.format(r.trans.amount));
-    table.column('Total', r => {
-      const str = currency.format(r.amount);
-      if (r.amount < 0) {
-        return chalk.redBright(str);
-      }
-      else {
-        return chalk.greenBright(str);
-      }
-    });
-    table.render(records);
+    recordTable.render(records);
   });
 
 // Run program.
