@@ -28,16 +28,20 @@ recordTable.column('Date', ({obj, data, row}) => {
     return format(obj!.trans.date, 'MM/dd/yyyy')
   }
 });
-recordTable.column('Memo', 'trans.memo');
-recordTable.column('Amount', ({obj}) => currency.format(obj!.trans.amount));
-recordTable.column('Total', ({obj}) => {
-  const str = currency.format(obj!.amount);
-  if (obj!.amount < 0) {
-    return chalk.redBright(str);
+recordTable.column('Memo', 'trans.memo', { align: 'right' });
+recordTable.column('Amount', ({obj}) => currency.format(obj!.trans.amount), { align: 'right' });
+recordTable.column('Total', ({obj}) => currency.format(obj!.amount), { align: 'right' });
+recordTable.format(({content, obj, col}) => {
+  if (obj == null) {
+    return content;
   }
-  else {
-    return chalk.greenBright(str);
+  else if (obj.trans.amount > 0) {
+      return chalk.greenBright(content);
   }
+  else if (obj.amount < 0) {
+    return chalk.redBright(content);
+  }
+  else return content;
 });
 
 // Load cashii data.
