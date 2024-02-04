@@ -1,9 +1,10 @@
+import { homedir } from 'os';
 import { Transaction } from "./Transaction.js";
 import { existsSync } from "fs";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 
-export const DEFAULT_PATH = join(process.cwd(), 'cashii.json');
+export const DEFAULT_PATH = join(homedir(), '.cashii.json');
 export interface Cashii {
   transactions: Transaction[]
 }
