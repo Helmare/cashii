@@ -1,4 +1,4 @@
-import { add, isWithinInterval, isBefore, Duration, parseJSON, compareAsc } from 'date-fns';
+import { add, isWithinInterval, isBefore, Duration, parseJSON, compareAsc, isEqual } from 'date-fns';
 
 export enum Trigger {
   ONCE = 'ONCE', 
@@ -65,7 +65,7 @@ export class Transaction implements ITransaction {
         years: this.trigger == Trigger.YEARLY ? 1 : 0
       };
 
-      while (isBefore(curr, end)) {
+      while (isBefore(curr, end) || isEqual(curr, end)) {
         if (isWithinInterval(curr, {start, end})) {
           arr.push(this.collapse(curr));
         }
